@@ -11,12 +11,33 @@
   #include <unistd.h>   
 #endif
 
+#define MAX_FRUIT_AMOUNT 10
+
 struct Point {
     int x, y;
 
     void print(char end='\n')
     {
         std::cout << "(" << x << ", " << y << ")" << end;
+    }
+
+    const bool operator==(const Point &other)
+    {
+        return this->x == other.x && this->y == other.y;
+    }
+};
+
+struct Fruit {
+    Point pos;
+    bool isBad;
+    bool active;
+
+    Fruit()
+    {
+        pos.x = 0;
+        pos.y = 0;
+        isBad = false;
+        active = false;
     }
 };
 
@@ -27,6 +48,71 @@ public:
     Node(Point p) : data(p), next(nullptr) {}
 };
 
+class FruitManager {
+    private:
+    Fruit *fruits[MAX_FRUIT_AMOUNT];
+
+    public:
+    FruitManager()
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            fruits[i] = new Fruit();
+        }
+    }
+
+    ~FruitManager()
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            delete fruits[i];
+        }
+    }
+
+    bool fruitInPoint(Point p, bool isBad=false) const
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            if (!fruits[i]->active) continue;
+            if (!(fruits[i]->pos == p)) continue;
+            if (fruits[i]->isBad == isBad) continue;
+            return true;
+        }
+
+        return false;
+    }
+
+    void killFruits()
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            fruits[i]->active = false;
+        }
+    }
+
+    void spawnFruit(Point p, bool isBad)
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            if (fruits[i]->active) continue;
+
+            fruits[i]->active = true;
+            fruits[i]->pos = p;
+            fruits[i]->isBad = isBad;
+        }
+    }
+
+    int fruitAmount()
+    {
+        int c=0;
+        
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            if (fruits[i]->active) c++;
+        }
+        return c;
+    }
+};
 
 //INSTRUCCIONES: Completa la implementación de los siguientes métodos CRUD, y añade la complejidad temporal y espacial.
 class LinkedList {
@@ -154,12 +240,12 @@ public:
 
 };
 
-
 class Game {
 private:
     int width, height;
     Point fruit;
-    Point badFruit;
+    //Point badFruit;
+    FruitManager fruitManager;
     int score;
     bool gameOver;
     enum eDirection { STOP = 0, LEFT, RIGHT, UP, DOWN };
@@ -180,8 +266,7 @@ private:
         gameOver = false;
         dir = STOP;
         snake.insertAtHead({ width / 2, height / 2 });
-        generateFruit();
-        badFruit = {-1, -1};
+        generateFruitsAll();
         
         nodelay(stdscr, TRUE);
         keypad(stdscr, TRUE); 
@@ -196,18 +281,25 @@ private:
         return false;
     }
 
-    void generateFruit() {
+    void generateFruitSingle(bool isBad=false) {
         do {
             fruit.x = rand() % (width - 2) + 1;
             fruit.y = rand() % (height - 2) + 1;
-        } while (isOnSnake(fruit) || (badFruit.x != -1 && fruit.x == badFruit.x && fruit.y == badFruit.y));
+        } while (
+            isOnSnake(fruit) || 
+            fruitManager.fruitInPoint(fruit) ||
+            fruitManager.fruitInPoint(fruit, false)
+            );
+        fruitManager.spawnFruit(fruit, isBad);
     }
 
-    void generateBadFruit() {
-        do {
-            badFruit.x = rand() % (width - 2) + 1;
-            badFruit.y = rand() % (height - 2) + 1;
-        } while (isOnSnake(badFruit) || (badFruit.x == fruit.x && badFruit.y == fruit.y));
+    void generateFruitsAll()
+    {
+        fruitManager.killFruits();
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            generateFruitSingle(score > (i + 3) * 5);
+        }
     }
 
     void draw() {
@@ -235,15 +327,16 @@ private:
                     mvprintw(i + 1, j + 1, "O");
                 else if (isSnakePart)
                     mvprintw(i + 1, j + 1, "o");
-                else if (i == fruit.y && j == fruit.x)
+                else if (fruitManager.fruitInPoint(Point{j, i}))
                     mvprintw(i + 1, j + 1, "+"); 
-                else if (badFruit.x != -1 && i == badFruit.y && j == badFruit.x)
+                else if (fruitManager.fruitInPoint(Point{j, i}, true))
                     mvprintw(i + 1, j + 1, "x"); 
             }
             mvprintw(i + 1, width + 1, "#");
         }
 
         mvprintw(height + 3, 0, "Score: %d", score);
+        mvprintw(height + 5, 0, "Fruits: %d", fruitManager.fruitAmount());
         refresh();
     }
 
@@ -295,22 +388,20 @@ private:
 
         bool grow = false;
 
-        if (newHeadPos.x == fruit.x && newHeadPos.y == fruit.y) {
+        if (fruitManager.fruitInPoint(newHeadPos)) {
             score += 10;
-            generateFruit();
-            generateBadFruit();
+            generateFruitsAll();
 
             grow = true;
         }
 
-        if (newHeadPos.x == badFruit.x && newHeadPos.y == badFruit.y) {
+        if (fruitManager.fruitInPoint(newHeadPos, true)) {
             int size = snake.countNodes(); 
             if (size > 1) {
                 int removeIndex = (rand() % (size - 1)) + 1;
                 snake.removeNodeAt(removeIndex);
             }
-            generateFruit();
-            generateBadFruit();
+            generateFruitsAll();
         }
 
         snake.updatePositions(newHeadPos, grow);
