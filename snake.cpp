@@ -2,7 +2,9 @@
 #include <vector>
 #include <cstdlib> 
 #include <ctime> 
-  
+#include <sstream> 
+#include <string>     
+
 #ifdef _WIN32
   #include <curses.h>
   #include <windows.h>  
@@ -58,6 +60,7 @@ class FruitManager {
         for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
         {
             fruits[i] = new Fruit();
+            fruits[i]->active = false;
         }
     }
 
@@ -97,8 +100,11 @@ class FruitManager {
             if (fruits[i]->active) continue;
 
             fruits[i]->active = true;
-            fruits[i]->pos = p;
+            fruits[i]->pos.x = p.x;
+            fruits[i]->pos.y = p.y;
             fruits[i]->isBad = isBad;
+            
+            return;
         }
     }
 
@@ -111,6 +117,20 @@ class FruitManager {
             if (fruits[i]->active) c++;
         }
         return c;
+    }
+    
+    void print()
+    {
+        for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
+        {
+            //if (!fruits[i]->active) continue;
+            
+            std::cout<<"F";
+            if (fruits[i]->isBad) std::cout<<"b";
+            else std::cout<<"n";
+            std::cout<<"(" << fruits[i]->pos.x << ", " << fruits[i]->pos.y << ") ";
+            std::cout<<"ALIVE: " << fruits[i]->active << "\n";
+        }
     }
 };
 
@@ -245,13 +265,14 @@ private:
     int width, height;
     Point fruit;
     //Point badFruit;
-    FruitManager fruitManager;
+    FruitManager *fruitManager;
     int score;
     bool gameOver;
     enum eDirection { STOP = 0, LEFT, RIGHT, UP, DOWN };
     eDirection dir;
     LinkedList snake;
 
+    
     void setup() {
         initscr();            
         clear();              
@@ -262,6 +283,7 @@ private:
         width -= 5; 
         height -= 5;
 
+        fruitManager = new FruitManager();
         score = 0;
         gameOver = false;
         dir = STOP;
@@ -287,18 +309,20 @@ private:
             fruit.y = rand() % (height - 2) + 1;
         } while (
             isOnSnake(fruit) || 
-            fruitManager.fruitInPoint(fruit) ||
-            fruitManager.fruitInPoint(fruit, false)
+            fruitManager->fruitInPoint(fruit) ||
+            fruitManager->fruitInPoint(fruit, false)
             );
-        fruitManager.spawnFruit(fruit, isBad);
+        fruitManager->spawnFruit(fruit, isBad);
     }
 
     void generateFruitsAll()
     {
-        fruitManager.killFruits();
+        fruitManager->killFruits();
         for (int i = 0; i < MAX_FRUIT_AMOUNT; i++)
         {
-            generateFruitSingle(score > (i + 3) * 5);
+            generateFruitSingle(
+                std::min(score, (MAX_FRUIT_AMOUNT - 2) * 20) < (i + 1) * 20)
+                ;
         }
     }
 
@@ -327,16 +351,17 @@ private:
                     mvprintw(i + 1, j + 1, "O");
                 else if (isSnakePart)
                     mvprintw(i + 1, j + 1, "o");
-                else if (fruitManager.fruitInPoint(Point{j, i}))
+                else if (fruitManager->fruitInPoint(Point{j, i}))
                     mvprintw(i + 1, j + 1, "+"); 
-                else if (fruitManager.fruitInPoint(Point{j, i}, true))
+                else if (fruitManager->fruitInPoint(Point{j, i}, true))
                     mvprintw(i + 1, j + 1, "x"); 
             }
             mvprintw(i + 1, width + 1, "#");
         }
 
-        mvprintw(height + 3, 0, "Score: %d", score);
-        mvprintw(height + 5, 0, "Fruits: %d", fruitManager.fruitAmount());
+        mvprintw(height + 3, 0, "Score: %d, Fruits: %d", score, fruitManager->fruitAmount());
+        //mvprintw(height + 5, 0, "Fruits: %d", score);
+        //mvprintw(height + 5, 0, "Fruits: %d", fruitManager->fruitAmount());
         refresh();
     }
 
@@ -388,14 +413,14 @@ private:
 
         bool grow = false;
 
-        if (fruitManager.fruitInPoint(newHeadPos)) {
+        if (fruitManager->fruitInPoint(newHeadPos)) {
             score += 10;
             generateFruitsAll();
 
             grow = true;
         }
 
-        if (fruitManager.fruitInPoint(newHeadPos, true)) {
+        if (fruitManager->fruitInPoint(newHeadPos, true)) {
             int size = snake.countNodes(); 
             if (size > 1) {
                 int removeIndex = (rand() % (size - 1)) + 1;
@@ -415,12 +440,13 @@ public:
             input();
             logic();
             #ifdef _WIN32
-            Sleep(300);
+            Sleep(200);
             #else
             usleep(100000);
             #endif
         }
         endwin();
+        delete fruitManager;
         std::cout << "Game Over! Final Score: " << score << std::endl;
     }
 };
