@@ -34,11 +34,19 @@ private:
     Node* head;
 
 public:
-    LinkedList(); 
-    // Constructor: inicializa la lista enlazada estableciendo el puntero head en nullptr.
 
-    ~LinkedList(); 
-    // Destructor: libera toda la memoria dinámica utilizada por los nodos de la lista.
+    //Prof: Faltaba el constructor
+    LinkedList() : head(nullptr) {}
+
+    ~LinkedList() {
+        Node* current = head;
+        while (current != nullptr) {
+            Node* next = current->next;
+            delete current;
+            current = next;
+        }
+        head = nullptr;
+    }
 
     // CREATE
     void insertAtHead(Point p)
@@ -82,14 +90,27 @@ public:
     // Imprime por consola las coordenadas (x, y) de cada nodo en la lista, en orden.
 
     // UPDATE
+
     void updatePositions(const Point& newHead, bool grow)
     {
-        Node* newHeadNode = new Node(newHead);
-        if (head != nullptr)
-            newHeadNode = head->next;
-        head = newHeadNode;
+        Node *tempNode = head;
+        Point newPoint = newHead;
 
-        if (!grow) removeTail();
+        while (tempNode)
+        {
+            Point lastPoint = tempNode->data;
+            tempNode->data = newPoint;
+            newPoint = lastPoint;
+            
+            if (grow && tempNode->next == nullptr)
+            {
+                Node* newNode = new Node(newPoint);
+                tempNode->next = newNode;
+                break;
+            }
+
+            tempNode = tempNode->next;
+        }
     }
     // Actualiza las posiciones de todos los nodos desplazando los valores a lo largo de la lista.
     // Si el parámetro grow es verdadero, se añade un nuevo nodo al final de la lista con la posición anterior de la cola.
@@ -303,7 +324,7 @@ public:
             input();
             logic();
             #ifdef _WIN32
-            Sleep(100);
+            Sleep(300);
             #else
             usleep(100000);
             #endif
