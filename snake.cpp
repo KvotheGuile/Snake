@@ -359,7 +359,7 @@ private:
             mvprintw(i + 1, width + 1, "#");
         }
 
-        mvprintw(height + 3, 0, "Score: %d, Fruits: %d", score, fruitManager->fruitAmount());
+        mvprintw(height + 3, 0, "Score: %d", score);
         //mvprintw(height + 5, 0, "Fruits: %d", score);
         //mvprintw(height + 5, 0, "Fruits: %d", fruitManager->fruitAmount());
         refresh();
