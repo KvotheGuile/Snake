@@ -34,10 +34,13 @@ private:
     Node* head;
 
 public:
-
-    //Prof: Faltaba el constructor
+    // O(1) Temporal
+    // O(1) Espacial
     LinkedList() : head(nullptr) {}
 
+    
+    // O(N) Temporal
+    // O(1) Espacial
     ~LinkedList() {
         Node* current = head;
         while (current != nullptr) {
@@ -49,19 +52,33 @@ public:
     }
 
     // CREATE
+    // O(1) Temporal
+    // O(1) Espacial
     void insertAtHead(Point p)
     {
-        head = new Node(p);
+        if (head == nullptr)
+        {
+            head = new Node(p);
+            return;
+        }
+
+        Node *newNode = new Node(p);
+        newNode->next = head;
+        head = newNode;
     }
     // Inserta un nuevo nodo al inicio de la lista que contenga el punto especificado.
 
     // READ
+    // O(1) Temporal
+    // O(1) Espacial
     Node* getHead() const
     {
         return head;
     }
     // Devuelve un puntero al nodo cabeza de la lista.
-
+    
+    // O(N) Temporal
+    // O(1) Espacial
     int countNodes() const
     {
         int c = 0;
@@ -77,7 +94,9 @@ public:
     }
     // Cuenta y devuelve el número total de nodos presentes en la lista.
 
-    //Prof: falta imprimir en consola las cordenadas
+    
+    // O(N) Temporal
+    // O(1) Espacial
     void printNodes() const
     {
         Node* temp = head;
@@ -91,7 +110,8 @@ public:
     // Imprime por consola las coordenadas (x, y) de cada nodo en la lista, en orden.
 
     // UPDATE
-
+    // O(N) Temporal
+    // O(1) Espacial
     void updatePositions(const Point& newHead, bool grow)
     {
         Node *tempNode = head;
@@ -117,6 +137,8 @@ public:
     // Si el parámetro grow es verdadero, se añade un nuevo nodo al final de la lista con la posición anterior de la cola.
 
     // REMOVE
+    // O(N) Temporal
+    // O(1) Espacial
     void removeTail()
     {
         int s = countNodes();
@@ -125,6 +147,8 @@ public:
     }
     // Elimina el último nodo (cola) de la lista, liberando su memoria.
 
+    // O(N) Temporal
+    // O(1) Espacial
     void removeNodeAt(int index)
     {
         if (head == nullptr) return;
